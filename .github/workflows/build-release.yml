@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build universal JAR
+    name: Build API-specific JARs
     runs-on: ubuntu-latest
 
     steps:
@@ -28,23 +28,40 @@ jobs:
           java-version: '8'
           cache: maven
 
-      - name: Build
-        run: mvn --batch-mode --no-transfer-progress clean package
-
-      - name: Stage JAR
+      - name: Build API-specific JARs
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          JAR="$(find target -maxdepth 1 -type f -name 'VoxelWorlds-*.jar' ! -name '*sources*' ! -name '*javadoc*' | head -n 1)"
-          test -n "$JAR"
-          cp "$JAR" dist/VoxelWorlds.jar
+          build() {
+            suffix="$1"
+            api_line="$2"
+            mvn --batch-mode --no-transfer-progress clean package -Dplugin.api.version="$api_line" -Djar.suffix="$suffix"
+            cp "target/VoxelWorlds-1.0-SNAPSHOT-$suffix.jar" "dist/VoxelWorlds-$suffix.jar"
+          }
+
+          build "legacy-1.12" ""
+          build "1.13" "api-version: '1.13'"
+          build "1.14" "api-version: '1.14'"
+          build "1.15" "api-version: '1.15'"
+          build "1.16" "api-version: '1.16'"
+          build "1.17" "api-version: '1.17'"
+          build "1.18" "api-version: '1.18'"
+          build "1.19" "api-version: '1.19'"
+          build "1.20" "api-version: '1.20'"
+          build "1.21" "api-version: '1.21'"
+          build "1.22" "api-version: '1.22'"
+          build "1.23" "api-version: '1.23'"
+          build "1.24" "api-version: '1.24'"
+          build "1.25" "api-version: '1.25'"
+          build "26.1" "api-version: '26.1'"
+          build "26.2" "api-version: '26.2'"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: VoxelWorlds
-          path: dist/VoxelWorlds.jar
+          path: dist/*.jar
           if-no-files-found: error
 
       - name: Publish rolling latest prerelease
@@ -55,13 +72,13 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest dist/VoxelWorlds.jar --clobber
+            gh release upload latest dist/*.jar --clobber
             gh release edit latest \
               --title "Latest Development Build" \
-              --notes "Automatically built from the latest commit on main. This is the universal multi-version VoxelWorlds JAR." \
+              --notes "Automatically built API-specific VoxelWorlds JARs. Choose the JAR matching your server version; use legacy-1.12 for 1.12.x." \
               --prerelease
           else
-            gh release create latest dist/VoxelWorlds.jar \
+            gh release create latest dist/*.jar \
               --title "Latest Development Build" \
               --notes "Automatically built from the latest commit on main. This is the universal multi-version VoxelWorlds JAR." \
               --prerelease \
@@ -75,6 +92,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "$GITHUB_REF_NAME" dist/VoxelWorlds.jar \
+          gh release create "$GITHUB_REF_NAME" dist/*.jar \
             --title "$GITHUB_REF_NAME" \
             --generate-notes

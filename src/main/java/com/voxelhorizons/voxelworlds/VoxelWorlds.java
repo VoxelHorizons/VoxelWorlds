@@ -21,7 +21,7 @@ public final class VoxelWorlds extends JavaPlugin {
         worldRegenerationService.start();
 
         getServer().getPluginManager().registerEvents(
-                new WorldEntryListener(worldEntryService), this);
+                new WorldEntryListener(worldEntryService, worldRegenerationService), this);
 
         PluginCommand command = getCommand("voxelworlds");
         if (command != null) {

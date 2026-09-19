@@ -21,3 +21,28 @@ first-entry:
     delay-ticks: 1
     commands:
       - "rtp player_sudo {player} {world}"
+
+
+# Automatic Multiverse-backed world regeneration.
+#
+# interval supports: ms, s, m, h and d (for example 30m, 12h, 7d).
+# The schedule is persisted in plugins/VoxelWorlds/regeneration.yml, so server
+# restarts do not reset the countdown.
+#
+# Players inside the world are teleported to evacuation-world before
+# Multiverse regenerates it. Regeneration is aborted safely if Multiverse-Core,
+# the target world, or the evacuation world is unavailable.
+regeneration:
+  check-interval-ticks: 1200
+  worlds:
+    resource:
+      enabled: true
+      interval: 7d
+      evacuation-world: voxel_hub
+      evacuation-delay-ticks: 20
+      random-seed: true
+      keep-world-config: true
+      keep-gamerules: true
+      keep-world-border: true
+      keep-files: []
+      broadcast: true

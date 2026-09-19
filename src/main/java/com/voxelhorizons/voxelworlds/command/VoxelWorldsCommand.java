@@ -57,9 +57,9 @@ public final class VoxelWorldsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {
-            return new ArrayList<>(Bukkit.getWorlds().stream()
-                    .map(world -> world.getName())
-                    .toList());
+            List<String> worlds = new ArrayList<String>();
+            Bukkit.getWorlds().forEach(world -> worlds.add(world.getName()));
+            return worlds;
         }
 
         return java.util.Collections.emptyList();

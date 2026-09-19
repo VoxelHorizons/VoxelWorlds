@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 public final class WorldRegenerationService {
 
     private final VoxelWorlds plugin;
+    private final WorldEntryService worldEntryService;
     private final File stateFile;
     private final YamlConfiguration state;
     private final VoxelCorePlaceholderBridge voxelCorePlaceholders;
@@ -38,8 +39,9 @@ public final class WorldRegenerationService {
     private BukkitTask task;
     private boolean regenerationRunning;
 
-    public WorldRegenerationService(VoxelWorlds plugin) {
+    public WorldRegenerationService(VoxelWorlds plugin, WorldEntryService worldEntryService) {
         this.plugin = plugin;
+        this.worldEntryService = worldEntryService;
         this.stateFile = new File(plugin.getDataFolder(), "regeneration.yml");
         this.state = YamlConfiguration.loadConfiguration(stateFile);
         this.voxelCorePlaceholders = new VoxelCorePlaceholderBridge(plugin);
@@ -476,8 +478,13 @@ public final class WorldRegenerationService {
             setNext(worldName, next);
             saveState();
 
-            plugin.getLogger().info("Regenerated world '" + worldName + "' through Multiverse-Core. Next regeneration: "
-                    + new java.util.Date(next));
+            // A regenerated world is a fresh world for first-entry purposes.
+            // Clear both visit flags and saved return locations only after
+            // Multiverse reports a successful regeneration.
+            int resetPlayers = worldEntryService.resetWorld(worldName);
+
+            plugin.getLogger().info("Regenerated world '" + worldName + "' through Multiverse-Core. Reset first-entry "
+                    + "state for " + resetPlayers + " player(s). Next regeneration: " + new java.util.Date(next));
             if (section.getBoolean("broadcast", true)) {
                 Bukkit.broadcastMessage(message("complete", worldName, formatDuration(intervalMillis(section)),
                         "&aRegeneration of &f{world} &ais complete. The world is open again."));

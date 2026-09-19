@@ -1,6 +1,7 @@
 package com.voxelhorizons.voxelworlds.service;
 
 import com.voxelhorizons.voxelworlds.VoxelWorlds;
+import com.voxelhorizons.voxelworlds.integration.VoxelCorePlaceholderBridge;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -31,6 +32,7 @@ public final class WorldRegenerationService {
     private final VoxelWorlds plugin;
     private final File stateFile;
     private final YamlConfiguration state;
+    private final VoxelCorePlaceholderBridge voxelCorePlaceholders;
     private final Set<String> lockedWorlds = new HashSet<String>();
     private final Map<UUID, Long> blockedMessageTimes = new HashMap<UUID, Long>();
     private BukkitTask task;
@@ -40,6 +42,7 @@ public final class WorldRegenerationService {
         this.plugin = plugin;
         this.stateFile = new File(plugin.getDataFolder(), "regeneration.yml");
         this.state = YamlConfiguration.loadConfiguration(stateFile);
+        this.voxelCorePlaceholders = new VoxelCorePlaceholderBridge(plugin);
     }
 
     public void start() {
@@ -534,6 +537,10 @@ public final class WorldRegenerationService {
         String value = prefix + body;
         value = value.replace("{world}", worldName == null ? "" : worldName);
         value = value.replace("{time}", time == null ? "" : time);
+
+        // Resolve VoxelCore's :alias: and :offset_*: placeholders before
+        // applying legacy colour codes, matching VoxelCore's normal chat path.
+        value = voxelCorePlaceholders.resolve(value);
         return ChatColor.translateAlternateColorCodes('&', value);
     }
 

@@ -129,6 +129,24 @@ public final class WorldRegenerationService {
             @Override
             public void run() {
                 evacuatePlayer(player, section, worldName);
+
+                // Essentials /spawn is normally asynchronous. Give it a moment,
+                // then fall back to the configured evacuation world's Bukkit
+                // spawn if the player is still inside the locked world.
+                Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!player.isOnline() || !player.getWorld().getName().equalsIgnoreCase(worldName)) {
+                            return;
+                        }
+
+                        String evacuationName = section.getString("evacuation-world", "voxel_hub");
+                        World evacuationWorld = Bukkit.getWorld(evacuationName);
+                        if (evacuationWorld != null) {
+                            player.teleport(evacuationWorld.getSpawnLocation());
+                        }
+                    }
+                }, 10L);
             }
         });
     }

@@ -1,7 +1,8 @@
 name: VoxelWorlds
 version: ${project.version}
 main: com.voxelhorizons.voxelworlds.VoxelWorlds
-${plugin.api.version}authors: [VoxelHorizons]
+${plugin.api.version}
+authors: [VoxelHorizons]
 description: World lifecycle and first-entry actions for VoxelHorizons.
 softdepend: [BetterRTP, Multiverse-Core, Multiverse-Portals]
 

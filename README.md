@@ -39,6 +39,12 @@ Completed first entries are stored by UUID in `plugins/VoxelWorlds/players.yml`.
 The completion state is persisted before commands execute, preventing recursive
 teleports from executing an action twice.
 
+If a world is also configured under `regeneration.worlds`, a successful regeneration
+clears every player's first-entry state for that world, including the saved
+`last-location`. The next time each player enters the regenerated world, its
+configured `first-entry` commands run again as if they had never visited that
+generation. Failed or aborted regenerations do not clear this state.
+
 ### Administration
 
 ```
@@ -47,7 +53,8 @@ teleports from executing an action twice.
 ```
 
 The reset command is useful while testing or when an administrator intentionally
-wants a player to receive a world's first-entry actions again.
+wants a player to receive a world's first-entry actions again. Resetting now clears
+both the visited flag and saved last location so stale coordinates cannot be restored.
 
 Permission: `voxelworlds.admin`
 
@@ -130,7 +137,8 @@ When regeneration begins, VoxelWorlds:
 7. Calls Multiverse-Core's world regeneration lifecycle.
 8. Preserves the configured Multiverse world settings, gamerules and border.
 9. Unlocks the world and broadcasts completion (or failure).
-10. Records a successful regeneration and schedules the next interval.
+10. Clears all saved first-entry/last-location state for the regenerated world so configured first-entry actions run again on each player's next visit.
+11. Records a successful regeneration and schedules the next interval.
 
 The teleport lock is intentionally world-level rather than tied to a specific Multiverse-Portal. This means a
 player standing in a portal cannot re-enter the world during regeneration, and other teleport mechanisms cannot

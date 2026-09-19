@@ -17,7 +17,7 @@ public final class VoxelWorlds extends JavaPlugin {
         saveDefaultConfig();
 
         worldEntryService = new WorldEntryService(this);
-        worldRegenerationService = new WorldRegenerationService(this);
+        worldRegenerationService = new WorldRegenerationService(this, worldEntryService);
         worldRegenerationService.start();
 
         getServer().getPluginManager().registerEvents(

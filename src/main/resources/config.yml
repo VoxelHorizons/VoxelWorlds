@@ -21,3 +21,59 @@ first-entry:
     delay-ticks: 1
     commands:
       - "rtp player_sudo {player} {world}"
+
+
+# Automatic Multiverse-backed world regeneration.
+#
+# interval supports: ms, s, m, h and d (for example 30m, 12h, 7d).
+# The schedule is persisted in plugins/VoxelWorlds/regeneration.yml, so server
+# restarts do not reset the countdown.
+#
+# Players inside the world are teleported to evacuation-world before
+# Multiverse regenerates it. Regeneration is aborted safely if Multiverse-Core,
+# the target world, or the evacuation world is unavailable.
+regeneration:
+  # Check once per second so short countdown warnings are not skipped.
+  check-interval-ticks: 20
+
+  # VoxelCore text placeholders are supported in every message when VoxelCore
+  # is installed, for example :server_logo:, :smile:, or :offset_-8:.
+  messages:
+    prefix: "&6[Resource Reset] &r"
+    warning: "&e{world} will regenerate in &f{time}&e. Please leave the resource world."
+    starting: "&6Regeneration of &f{world} &6is starting now. The world is temporarily closed."
+    evacuating: "&ePlayers in &f{world} &eare being sent to spawn."
+    forced-evacuation: "&eYou are being moved to spawn while &f{world} &eregenerates."
+    locked: "&cThat world is temporarily closed while it regenerates."
+    complete: "&aRegeneration of &f{world} &ais complete. The world is open again."
+    failed: "&cRegeneration of &f{world} &cfailed. The world has been reopened."
+
+  worlds:
+    resource:
+      enabled: true
+      interval: 7d
+
+      # Countdown messages before an automatic regeneration.
+      warning-times:
+        - 1h
+        - 30m
+        - 10m
+        - 5m
+        - 1m
+        - 30s
+        - 10s
+
+      # EssentialsX supports "spawn <player>" from console. This is preferred
+      # so players arrive at the server's configured Essentials spawn/group spawn.
+      # If that command fails or takes too long, VoxelWorlds falls back to the
+      # Bukkit spawn of evacuation-world.
+      evacuation-command: "spawn {player}"
+      evacuation-world: voxel_hub
+      evacuation-delay-ticks: 40
+
+      random-seed: true
+      keep-world-config: true
+      keep-gamerules: true
+      keep-world-border: true
+      keep-files: []
+      broadcast: true

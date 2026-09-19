@@ -33,13 +33,42 @@ first-entry:
 # Multiverse regenerates it. Regeneration is aborted safely if Multiverse-Core,
 # the target world, or the evacuation world is unavailable.
 regeneration:
-  check-interval-ticks: 1200
+  # Check once per second so short countdown warnings are not skipped.
+  check-interval-ticks: 20
+
+  messages:
+    prefix: "&6[Resource Reset] &r"
+    warning: "&e{world} will regenerate in &f{time}&e. Please leave the resource world."
+    starting: "&6Regeneration of &f{world} &6is starting now. The world is temporarily closed."
+    evacuating: "&ePlayers in &f{world} &eare being sent to spawn."
+    forced-evacuation: "&eYou are being moved to spawn while &f{world} &eregenerates."
+    locked: "&cThat world is temporarily closed while it regenerates."
+    complete: "&aRegeneration of &f{world} &ais complete. The world is open again."
+    failed: "&cRegeneration of &f{world} &cfailed. The world has been reopened."
+
   worlds:
     resource:
       enabled: true
       interval: 7d
+
+      # Countdown messages before an automatic regeneration.
+      warning-times:
+        - 1h
+        - 30m
+        - 10m
+        - 5m
+        - 1m
+        - 30s
+        - 10s
+
+      # EssentialsX supports "spawn <player>" from console. This is preferred
+      # so players arrive at the server's configured Essentials spawn/group spawn.
+      # If that command fails or takes too long, VoxelWorlds falls back to the
+      # Bukkit spawn of evacuation-world.
+      evacuation-command: "spawn {player}"
       evacuation-world: voxel_hub
-      evacuation-delay-ticks: 20
+      evacuation-delay-ticks: 40
+
       random-seed: true
       keep-world-config: true
       keep-gamerules: true

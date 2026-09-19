@@ -2,6 +2,8 @@ package com.voxelhorizons.voxelworlds.service;
 
 import com.voxelhorizons.voxelworlds.VoxelWorlds;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -23,52 +25,121 @@ public final class WorldEntryService {
         this.data = YamlConfiguration.loadConfiguration(dataFile);
     }
 
-    public void handleEntry(Player player) {
-        String world = player.getWorld().getName();
+    public void handleWorldChange(Player player, World fromWorld) {
+        String destinationWorld = player.getWorld().getName();
+
+        // PlayerChangedWorldEvent fires after the move, but still exposes the
+        // world the player came from. At this point the player's current
+        // location is already in the destination, so the source position must
+        // be captured separately before the teleport (see handleTeleport).
+        handleEntry(player, destinationWorld);
+    }
+
+    public void handleTeleportFrom(Player player, Location from) {
+        if (from == null || from.getWorld() == null) {
+            return;
+        }
+
+        saveLastLocation(player.getUniqueId(), from);
+    }
+
+    public void handleEntry(Player player, String world) {
         String configPath = "first-entry." + world;
 
         if (!plugin.getConfig().getBoolean(configPath + ".enabled", false)) {
             return;
         }
 
-        if (hasVisited(player.getUniqueId(), world)) {
+        if (!hasVisited(player.getUniqueId(), world)) {
+            // Persist before executing actions. If an action teleports the player,
+            // the resulting world-change event cannot trigger this entry again.
+            markVisited(player.getUniqueId(), world);
+
+            long delay = Math.max(0L, plugin.getConfig().getLong(configPath + ".delay-ticks", 1L));
+            List<String> commands = plugin.getConfig().getStringList(configPath + ".commands");
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline() || !player.getWorld().getName().equals(world)) {
+                    return;
+                }
+
+                for (String command : commands) {
+                    String resolved = command
+                            .replace("{player}", player.getName())
+                            .replace("{uuid}", player.getUniqueId().toString())
+                            .replace("{world}", world);
+
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
+                }
+            }, delay);
             return;
         }
 
-        // Persist before executing actions. If an action teleports the player,
-        // the resulting world-change event cannot trigger this entry again.
-        markVisited(player.getUniqueId(), world);
+        if (!plugin.getConfig().getBoolean(configPath + ".return-to-last-location", true)) {
+            return;
+        }
 
-        long delay = Math.max(0L, plugin.getConfig().getLong(configPath + ".delay-ticks", 1L));
-        List<String> commands = plugin.getConfig().getStringList(configPath + ".commands");
+        Location lastLocation = getLastLocation(player.getUniqueId(), world);
+        if (lastLocation == null) {
+            return;
+        }
 
+        // Multiverse has already placed the player at its portal destination
+        // (normally the world's spawn). Restore their saved position one tick
+        // later so our destination wins without interfering with the portal event.
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isOnline()) {
-                return;
+            if (player.isOnline() && player.getWorld().getName().equals(world)) {
+                player.teleport(lastLocation);
             }
-
-            for (String command : commands) {
-                String resolved = command
-                        .replace("{player}", player.getName())
-                        .replace("{uuid}", player.getUniqueId().toString())
-                        .replace("{world}", world);
-
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
-            }
-        }, delay);
+        }, 1L);
     }
 
     public boolean hasVisited(UUID uuid, String world) {
-        return data.getBoolean(path(uuid, world), false);
+        return data.getBoolean(visitedPath(uuid, world), false);
     }
 
     public void markVisited(UUID uuid, String world) {
-        data.set(path(uuid, world), true);
+        data.set(visitedPath(uuid, world), true);
         save();
     }
 
+    public void saveLastLocation(UUID uuid, Location location) {
+        if (location.getWorld() == null) {
+            return;
+        }
+
+        String path = locationPath(uuid, location.getWorld().getName());
+        data.set(path + ".x", location.getX());
+        data.set(path + ".y", location.getY());
+        data.set(path + ".z", location.getZ());
+        data.set(path + ".yaw", location.getYaw());
+        data.set(path + ".pitch", location.getPitch());
+        save();
+    }
+
+    public Location getLastLocation(UUID uuid, String worldName) {
+        String path = locationPath(uuid, worldName);
+        if (!data.contains(path + ".x")) {
+            return null;
+        }
+
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+
+        return new Location(
+                world,
+                data.getDouble(path + ".x"),
+                data.getDouble(path + ".y"),
+                data.getDouble(path + ".z"),
+                (float) data.getDouble(path + ".yaw"),
+                (float) data.getDouble(path + ".pitch")
+        );
+    }
+
     public boolean reset(UUID uuid, String world) {
-        String path = path(uuid, world);
+        String path = visitedPath(uuid, world);
         if (!data.contains(path)) {
             return false;
         }
@@ -78,7 +149,15 @@ public final class WorldEntryService {
         return true;
     }
 
-    private String path(UUID uuid, String world) {
+    private String visitedPath(UUID uuid, String world) {
+        return playerWorldPath(uuid, world) + ".visited";
+    }
+
+    private String locationPath(UUID uuid, String world) {
+        return playerWorldPath(uuid, world) + ".last-location";
+    }
+
+    private String playerWorldPath(UUID uuid, String world) {
         return "players." + uuid + ".worlds." + world.toLowerCase(Locale.ROOT);
     }
 

@@ -59,13 +59,26 @@ per week:
 
 ```yaml
 regeneration:
-  check-interval-ticks: 1200
+  check-interval-ticks: 20
+
+  messages:
+    prefix: "&6[Resource Reset] &r"
+    warning: "&e{world} will regenerate in &f{time}&e. Please leave the resource world."
+    starting: "&6Regeneration of &f{world} &6is starting now. The world is temporarily closed."
+    evacuating: "&ePlayers in &f{world} &eare being sent to spawn."
+    forced-evacuation: "&eYou are being moved to spawn while &f{world} &eregenerates."
+    locked: "&cThat world is temporarily closed while it regenerates."
+    complete: "&aRegeneration of &f{world} &ais complete. The world is open again."
+    failed: "&cRegeneration of &f{world} &cfailed. The world has been reopened."
+
   worlds:
     resource:
       enabled: true
       interval: 7d
+      warning-times: [1h, 30m, 10m, 5m, 1m, 30s, 10s]
+      evacuation-command: "spawn {player}"
       evacuation-world: voxel_hub
-      evacuation-delay-ticks: 20
+      evacuation-delay-ticks: 40
       random-seed: true
       keep-world-config: true
       keep-gamerules: true
@@ -79,14 +92,27 @@ Intervals support `ms`, `s`, `m`, `h`, and `d`, such as `30m`,
 `plugins/VoxelWorlds/regeneration.yml`, so restarting the server does not
 restart the interval.
 
-When a regeneration becomes due, VoxelWorlds:
+Before an automatic regeneration, VoxelWorlds broadcasts configurable countdown warnings using a dedicated
+`[Resource Reset]` prefix. The default warnings are sent at 1 hour, 30 minutes, 10 minutes, 5 minutes,
+1 minute, 30 seconds, and 10 seconds.
+
+When regeneration begins, VoxelWorlds:
 
 1. Confirms Multiverse-Core, the target world, and evacuation world are available.
-2. Moves all players out of the target world.
-3. Waits the configured evacuation delay.
-4. Calls Multiverse-Core's world regeneration lifecycle.
-5. Preserves the configured Multiverse world settings, gamerules and border.
-6. Records the successful regeneration and schedules the next interval.
+2. Locks the target world against incoming teleports.
+3. Cancels Multiverse-Portals, `/mvtp`, command, and plugin teleports into the locked world.
+4. Sends players in the target world through the configured evacuation command. By default this is
+   `spawn {player}`, which uses EssentialsX's configured spawn when EssentialsSpawn is installed.
+5. Falls back to the Bukkit spawn of `evacuation-world` for anyone who remains in the target world.
+6. Verifies that the target world contains zero players. If it cannot be emptied, regeneration is cancelled.
+7. Calls Multiverse-Core's world regeneration lifecycle.
+8. Preserves the configured Multiverse world settings, gamerules and border.
+9. Unlocks the world and broadcasts completion (or failure).
+10. Records a successful regeneration and schedules the next interval.
+
+The teleport lock is intentionally world-level rather than tied to a specific Multiverse-Portal. This means a
+player standing in a portal cannot re-enter the world during regeneration, and other teleport mechanisms cannot
+bypass the lock either.
 
 With `random-seed: true`, each regeneration creates a fresh seed. Set it to
 `false` to retain the current seed, or additionally configure `seed:` to use
@@ -106,8 +132,9 @@ without deleting the world.
 /vw reload
 ```
 
-`/vw regen` starts the same safe evacuation and Multiverse regeneration flow
-immediately. A successful manual regeneration also resets that world's interval.
+`/vw regen` starts the same lock, evacuation, empty-world verification, and Multiverse regeneration flow
+immediately. A successful manual regeneration also resets that world's interval. Scheduled resets receive the
+configured countdown warnings; manual resets intentionally begin immediately after the administrator command.
 
 ## Compatibility
 

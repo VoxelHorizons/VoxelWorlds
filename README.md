@@ -92,6 +92,28 @@ Intervals support `ms`, `s`, `m`, `h`, and `d`, such as `30m`,
 `plugins/VoxelWorlds/regeneration.yml`, so restarting the server does not
 restart the interval.
 
+### VoxelCore text placeholders
+
+When VoxelCore is installed, the regeneration prefix and every regeneration message are passed through
+VoxelCore's `TextPlaceholderService`. This means the same VoxelCore font aliases and spacing placeholders used in
+chat/UI text are supported here too, including values such as `:smile:`, `:staff:`, GUI aliases, and
+`:offset_-16:`.
+
+VoxelWorlds first resolves its own `{world}` and `{time}` tokens, then asks VoxelCore to resolve its
+`:placeholder:` aliases, and finally applies legacy `&` colour codes.
+
+For example:
+
+```yaml
+regeneration:
+  messages:
+    prefix: ":server_logo: &6[Resource Reset] &r"
+    warning: ":warning: &e{world} will regenerate in &f{time}&e."
+```
+
+VoxelCore is a soft dependency. If it is absent or disabled, VoxelWorlds continues normally and leaves unknown
+VoxelCore aliases untouched.
+
 Before an automatic regeneration, VoxelWorlds broadcasts configurable countdown warnings using a dedicated
 `[Resource Reset]` prefix. The default warnings are sent at 1 hour, 30 minutes, 10 minutes, 5 minutes,
 1 minute, 30 seconds, and 10 seconds.

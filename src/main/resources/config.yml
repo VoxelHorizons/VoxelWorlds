@@ -1,0 +1,17 @@
+# Actions run once, the first time a player enters a configured world.
+#
+# Commands are dispatched by the console.
+# Supported placeholders:
+#   {player} - player name
+#   {uuid}   - player UUID
+#   {world}  - destination world name
+#
+# The completion flag is written before commands execute so a command which
+# teleports the player again cannot cause the action to run twice.
+
+first-entry:
+  realms:
+    enabled: true
+    delay-ticks: 1
+    commands:
+      - "rtp player_sudo {player} {world}"

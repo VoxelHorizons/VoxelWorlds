@@ -32,6 +32,11 @@ first-entry:
 # Players inside the world are teleported to evacuation-world before
 # Multiverse regenerates it. Regeneration is aborted safely if Multiverse-Core,
 # the target world, or the evacuation world is unavailable.
+#
+# After a successful regeneration, any saved first-entry state for that world
+# is cleared for every player. If the same world has first-entry commands above,
+# those commands run again on each player's next visit and no stale
+# last-location from the previous generation can be restored.
 regeneration:
   # Check once per second so short countdown warnings are not skipped.
   check-interval-ticks: 20

@@ -53,7 +53,23 @@ public final class WorldRegenerationService {
     }
 
     public void reload() {
-        initialiseMissingSchedules();
+        long now = System.currentTimeMillis();
+        for (String worldName : configuredWorlds()) {
+            ConfigurationSection section = worldSection(worldName);
+            if (section == null || !section.getBoolean("enabled", false)) {
+                continue;
+            }
+
+            try {
+                long last = state.getLong(statePath(worldName) + ".last", 0L);
+                long base = last > 0L ? last : now;
+                state.set(statePath(worldName) + ".next", base + intervalMillis(section));
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().severe("Invalid regeneration interval for world '" + worldName
+                        + "': " + exception.getMessage());
+            }
+        }
+        saveState();
     }
 
     public boolean regenerateNow(String worldName) {

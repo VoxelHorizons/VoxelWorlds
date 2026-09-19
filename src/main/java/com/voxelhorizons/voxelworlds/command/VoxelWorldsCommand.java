@@ -55,10 +55,6 @@ public final class VoxelWorldsCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 2 && (args[0].equalsIgnoreCase("regen") || args[0].equalsIgnoreCase("next"))) {
-            return regeneration.configuredWorlds();
-        }
-
         if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {
             OfflinePlayer player = Bukkit.getOfflinePlayer(args[1]);
 
@@ -85,6 +81,10 @@ public final class VoxelWorldsCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             return java.util.Arrays.asList("reload", "regen", "next", "reset");
+        }
+
+        if (args.length == 2 && (args[0].equalsIgnoreCase("regen") || args[0].equalsIgnoreCase("next"))) {
+            return regeneration.configuredWorlds();
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {

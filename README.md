@@ -51,10 +51,27 @@ wants a player to receive a world's first-entry actions again.
 
 Permission: `voxelworlds.admin`
 
+## Compatibility
+
+VoxelWorlds deliberately compiles against the Spigot 1.12.2 API and Java 8 because
+the features it uses are stable Bukkit APIs. The same JAR is intended to run from
+Minecraft 1.12.2 through current Paper releases, including 26.2. There is no
+NMS/version-specific code.
+
+BetterRTP and Multiverse are optional runtime integrations; VoxelWorlds does not
+link against their APIs and executes configured commands through Bukkit.
+
 ## Building
 
 ```bash
 mvn clean package
 ```
 
-The resulting plugin JAR is written to `target/`.
+The resulting universal plugin JAR is written to `target/`.
+
+## Automated builds and releases
+
+Every push and pull request is compiled by GitHub Actions. Pushes to `main`
+also publish a rolling GitHub prerelease named `latest`, containing the current
+universal VoxelWorlds JAR. Version tags matching `v*` create normal versioned
+GitHub releases.

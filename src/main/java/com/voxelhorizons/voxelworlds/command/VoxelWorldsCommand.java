@@ -53,7 +53,7 @@ public final class VoxelWorldsCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "reset");
+            return java.util.Arrays.asList("reload", "reset");
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {
@@ -62,6 +62,6 @@ public final class VoxelWorldsCommand implements CommandExecutor, TabCompleter {
                     .toList());
         }
 
-        return List.of();
+        return java.util.Collections.emptyList();
     }
 }

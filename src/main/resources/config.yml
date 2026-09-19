@@ -36,6 +36,8 @@ regeneration:
   # Check once per second so short countdown warnings are not skipped.
   check-interval-ticks: 20
 
+  # VoxelCore text placeholders are supported in every message when VoxelCore
+  # is installed, for example :server_logo:, :smile:, or :offset_-8:.
   messages:
     prefix: "&6[Resource Reset] &r"
     warning: "&e{world} will regenerate in &f{time}&e. Please leave the resource world."

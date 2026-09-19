@@ -28,6 +28,9 @@ jobs:
           java-version: '8'
           cache: maven
 
+      - name: Install YAML validator
+        run: python3 -m pip install --disable-pip-version-check pyyaml
+
       - name: Build API-specific JARs
         shell: bash
         run: |
@@ -56,6 +59,39 @@ jobs:
           build "1.25" "api-version: '1.25'"
           build "26.1" "api-version: '26.1'"
           build "26.2" "api-version: '26.2'"
+
+      - name: Validate generated plugin descriptors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, zipfile, yaml
+
+          expected = {
+              "legacy-1.12": None,
+              "1.13": "1.13", "1.14": "1.14", "1.15": "1.15",
+              "1.16": "1.16", "1.17": "1.17", "1.18": "1.18",
+              "1.19": "1.19", "1.20": "1.20", "1.21": "1.21",
+              "1.22": "1.22", "1.23": "1.23", "1.24": "1.24",
+              "1.25": "1.25", "26.1": "26.1", "26.2": "26.2",
+          }
+
+          for suffix, api in expected.items():
+              jar = f"dist/VoxelWorlds-{suffix}.jar"
+              with zipfile.ZipFile(jar) as zf:
+                  raw = zf.read("plugin.yml").decode("utf-8")
+                  parsed = yaml.safe_load(raw)
+
+              if parsed.get("name") != "VoxelWorlds":
+                  raise SystemExit(f"{jar}: invalid plugin name")
+              if api is None:
+                  if "api-version" in parsed:
+                      raise SystemExit(f"{jar}: legacy build must omit api-version")
+              elif str(parsed.get("api-version")) != api:
+                  raise SystemExit(f"{jar}: expected api-version {api}, got {parsed.get('api-version')}")
+
+              print(f"{jar}: plugin.yml valid (api-version={api or 'legacy'})")
+          PY
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

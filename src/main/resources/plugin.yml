@@ -4,7 +4,7 @@ main: com.voxelhorizons.voxelworlds.VoxelWorlds
 ${plugin.api.version}
 authors: [VoxelHorizons]
 description: World lifecycle and first-entry actions for VoxelHorizons.
-softdepend: [BetterRTP, Multiverse-Core, Multiverse-Portals]
+softdepend: [VoxelCore, BetterRTP, Multiverse-Core, Multiverse-Portals]
 
 commands:
   voxelworlds:

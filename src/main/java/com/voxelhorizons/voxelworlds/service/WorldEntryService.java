@@ -4,6 +4,7 @@ import com.voxelhorizons.voxelworlds.VoxelWorlds;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -138,8 +139,15 @@ public final class WorldEntryService {
         );
     }
 
+    /**
+     * Clears all first-entry state for one player/world pair.
+     *
+     * This intentionally removes both the visited flag and the saved
+     * last-location. A reset must never send a player back to coordinates from
+     * an older incarnation of a regenerated world.
+     */
     public boolean reset(UUID uuid, String world) {
-        String path = visitedPath(uuid, world);
+        String path = playerWorldPath(uuid, world);
         if (!data.contains(path)) {
             return false;
         }
@@ -147,6 +155,39 @@ public final class WorldEntryService {
         data.set(path, null);
         save();
         return true;
+    }
+
+    /**
+     * Clears first-entry state for every recorded player in a world.
+     *
+     * Used after a successful resource-world regeneration so the next entry
+     * into the fresh world reruns that world's configured first-entry commands
+     * and cannot restore a stale location from the previous world generation.
+     *
+     * @return number of player world-state records removed
+     */
+    public int resetWorld(String world) {
+        ConfigurationSection players = data.getConfigurationSection("players");
+        if (players == null) {
+            return 0;
+        }
+
+        String normalizedWorld = world.toLowerCase(Locale.ROOT);
+        int reset = 0;
+        for (String playerId : players.getKeys(false)) {
+            String path = "players." + playerId + ".worlds." + normalizedWorld;
+            if (!data.contains(path)) {
+                continue;
+            }
+
+            data.set(path, null);
+            reset++;
+        }
+
+        if (reset > 0) {
+            save();
+        }
+        return reset;
     }
 
     private String visitedPath(UUID uuid, String world) {

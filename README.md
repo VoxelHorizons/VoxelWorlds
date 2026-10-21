@@ -170,7 +170,7 @@ configured countdown warnings; manual resets intentionally begin immediately aft
 
 VoxelWorlds deliberately compiles against the Spigot 1.12.2 API and Java 8 because
 the features it uses are stable Bukkit APIs. The same JAR is intended to run from
-Minecraft 1.12.2 through current Paper releases, including 26.2. There is no
+Minecraft 1.12.2 through current Paper releases, including 26.2 and 26.3. There is no
 NMS/version-specific code.
 
 BetterRTP remains an optional command-based runtime integration. Multiverse-Core

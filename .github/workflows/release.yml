@@ -1,0 +1,125 @@
+name: Prepare VoxelWorlds Release Draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag vX.Y.Z or vX.Y.Z-rc.N
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main' && github.actor == 'Fibbicles'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      commit: ${{ steps.version.outputs.commit }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify existing tag, main ancestry, and Maven release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo 'Invalid release tag'; exit 1; }
+          git fetch --tags origin
+          COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")
+          git merge-base --is-ancestor "$COMMIT" origin/main || { echo 'Tag is not on main'; exit 1; }
+          VERSION="${RELEASE_TAG#v}"
+          POM_VERSION=$(git show "$COMMIT:pom.xml" | python3 -c 'import sys,xml.etree.ElementTree as ET; r=ET.fromstring(sys.stdin.read()); print(r.find("{http://maven.apache.org/POM/4.0.0}version").text)')
+          [[ "$POM_VERSION" == "$VERSION" ]] || { echo "Version mismatch: tag $VERSION, POM $POM_VERSION"; exit 1; }
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.validate.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+      - name: Build and test tagged source
+        run: bash .github/scripts/build-distributions.sh && python3 .github/scripts/validate-distributions.py
+      - name: Stage all versioned VoxelWorlds distributions
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-files
+          for jar in dist/VoxelWorlds-*.jar; do
+            [[ -s "$jar" ]] || exit 1
+            unzip -p "$jar" plugin.yml | grep -Fx "version: ${RELEASE_VERSION}"
+            suffix="${jar#dist/VoxelWorlds-}"
+            suffix="${suffix%.jar}"
+            cp "$jar" "release-files/VoxelWorlds-${RELEASE_VERSION}-${suffix}.jar"
+          done
+          [[ "$(find release-files -maxdepth 1 -name '*.jar' | wc -l)" -eq 17 ]] || exit 1
+          (cd release-files && sha256sum ./*.jar > SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-candidate
+          path: release-files/
+          if-no-files-found: error
+          retention-days: 7
+
+  create-draft:
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-candidate
+          path: dist
+      - name: Create draft release only after artifact and tag verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_COMMIT: ${{ needs.validate.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c SHA256SUMS
+          compgen -G '*.jar' >/dev/null
+          if gh release view "$RELEASE_TAG" -R "$GH_REPO" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to overwrite'
+            exit 1
+          fi
+          OBJECT=$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha + " " + .object.type')
+          TAG_SHA="${OBJECT%% *}"
+          if [[ "${OBJECT##* }" == 'tag' ]]; then
+            TAG_SHA=$(gh api "repos/$GH_REPO/git/tags/$TAG_SHA" --jq '.object.sha')
+          fi
+          [[ "$TAG_SHA" == "$EXPECTED_COMMIT" ]] || { echo 'Tag moved after build'; exit 1; }
+          FLAGS=(--draft --verify-tag --generate-notes --latest=false)
+          [[ "$RELEASE_TAG" == *-rc.* ]] && FLAGS+=(--prerelease)
+          gh release create "$RELEASE_TAG" ./*.jar ./SHA256SUMS -R "$GH_REPO" "${FLAGS[@]}"

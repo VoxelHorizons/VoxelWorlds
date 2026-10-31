@@ -31,35 +31,7 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check pyyaml
 
       - name: Build API-specific JARs
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          PROJECT_VERSION=$(python3 -c 'import xml.etree.ElementTree as ET; p=ET.parse("pom.xml").getroot(); print(p.find("{http://maven.apache.org/POM/4.0.0}version").text)')
-          build() {
-            suffix="$1"
-            api_line="$2"
-            mvn --batch-mode --no-transfer-progress clean package -Dplugin.api.version="$api_line" -Djar.suffix="$suffix"
-            cp "target/VoxelWorlds-${PROJECT_VERSION}-$suffix.jar" "dist/VoxelWorlds-$suffix.jar"
-          }
-
-          build "legacy-1.12" ""
-          build "1.13" "api-version: '1.13'"
-          build "1.14" "api-version: '1.14'"
-          build "1.15" "api-version: '1.15'"
-          build "1.16" "api-version: '1.16'"
-          build "1.17" "api-version: '1.17'"
-          build "1.18" "api-version: '1.18'"
-          build "1.19" "api-version: '1.19'"
-          build "1.20" "api-version: '1.20'"
-          build "1.21" "api-version: '1.21'"
-          build "1.22" "api-version: '1.22'"
-          build "1.23" "api-version: '1.23'"
-          build "1.24" "api-version: '1.24'"
-          build "1.25" "api-version: '1.25'"
-          build "26.1" "api-version: '26.1'"
-          build "26.2" "api-version: '26.2'"
-          build "26.3" "api-version: '26.3'"
+        run: bash .github/scripts/build-distributions.sh
 
       - name: Validate generated plugin descriptors
         shell: bash

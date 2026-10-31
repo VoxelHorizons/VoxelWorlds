@@ -62,7 +62,7 @@ jobs:
           java-version: '8'
           cache: maven
       - name: Build and test tagged source
-        run: bash .github/scripts/build-distributions.sh
+        run: bash .github/scripts/build-distributions.sh && python3 .github/scripts/validate-distributions.py
       - name: Stage all versioned VoxelWorlds distributions
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}

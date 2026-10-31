@@ -1,0 +1,10 @@
+# VoxelHorizons default review ownership
+# The team owner applies once Plugin Developer has Write access and is a visible team.
+* @Fibbicles @VoxelHorizons/plugin-developer
+
+# Changes to build/release automation and repository governance need owner review.
+/.github/ @Fibbicles
+/pom.xml @Fibbicles
+/LICENSE @Fibbicles
+/LICENSE.* @Fibbicles
+/SECURITY.md @Fibbicles

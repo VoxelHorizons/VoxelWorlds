@@ -1,0 +1,11 @@
+# VoxelHorizons default review ownership
+# Team slug "developer" was confirmed by the organisation's GitHub CLI output.
+# GitHub will recognise the team as code owner once it has Write access to this repo.
+* @Fibbicles @VoxelHorizons/developer
+
+# Sensitive build, release, security, and legal files remain owner-reviewed.
+/.github/ @Fibbicles
+/pom.xml @Fibbicles
+/LICENSE @Fibbicles
+/LICENSE.* @Fibbicles
+/SECURITY.md @Fibbicles

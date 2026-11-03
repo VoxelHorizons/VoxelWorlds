@@ -1,0 +1,20 @@
+# Scheduled review-only dependency update proposals.
+# No automatic merges, version bumps, releases or secret access are granted.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Australia/Melbourne"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Australia/Melbourne"
+    open-pull-requests-limit: 3

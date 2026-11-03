@@ -6,7 +6,7 @@
 
     <groupId>org.voxelhorizons</groupId>
     <artifactId>VoxelWorlds</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>VoxelWorlds</name>
     <description>World lifecycle and first-entry actions for VoxelHorizons.</description>
 
